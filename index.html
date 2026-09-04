@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>منظومة الصيدلية الذكية - تسجيل المبيعات</title>
+    <!-- استدعاء مكتبة قراءة الـ QR ومكتبة توليد ملفات الاكسيل -->
+    <script src="https://unpkg.com"></script>
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        :root {
+            --primary-color: #008080;
+            --secondary-color: #20b2aa;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            font-size: 1.8rem;
+        }
+        .scanner-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            border: 2px dashed var(--secondary-color);
+            padding: 20px;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+        #reader {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #006666;
+        }
+        .btn-excel {
+            background-color: #1f7246; /* لون اكسيل الشهير */
+        }
+        .btn-excel:hover {
+            background-color: #13462b;
+        }
+        .table-responsive {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            text-align: right;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .status-badge {
+            background-color: #e1f5fe;
+            color: #0288d1;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🏥 منظومة تسجيل مبيعات الصيدلية الذكية (QR Code)</h1>
+    
+    <!-- قسم الكاميرا والقارئ -->
+    <div class="scanner-section">
+        <div id="reader"></div>
+        <p id="scan-status" style="margin-top: 15px; font-weight: bold; color: #555;">وجه كاميرا الهاتف نحو الـ QR المطبوع على علبة الدواء</p>
+    </div>
+
+    <!-- التحكم والمبيعات الحالية -->
+    <div class="actions">
+        <span class="status-badge" id="sales-count">إجمالي المبيعات الحالية: 0 علب</span>
+        <button class="btn-excel" id="btn-download">📥 تحميل ملف Excel المبيعات</button>
+    </div>
+
+    <!-- جدول عرض المبيعات اللحظي -->
+    <div class="table-responsive">
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>التاريخ والوقت</th>
+                    <th>بيانات الدواء المعالجة من الـ QR</th>
+                </tr>
+            </thead>
+            <tbody id="sales-table-body">
+                <!-- المبيعات المسجلة ستظهر هنا ديناميكياً -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
