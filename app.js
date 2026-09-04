@@ -1,3 +1,4 @@
+// قاعدة بيانات الأدوية في صيدليتك
 const pharmacyInventory = {
     "https://panadol.com": { name: "بنادول إكسترا", price: "35 جنيه" },
     "1234567890": { name: "أوميز عشرين مجم", price: "70 جنيه" },
@@ -5,17 +6,15 @@ const pharmacyInventory = {
 };
 
 let salesData = [];
-let lastCode = "";
-let lastTime = 0;
 let stream = null;
-let scanningActive = false;
 
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: true }); // تحسين كفاءة الذاكرة لسرعة المعالجة اللحظية
+const ctx = canvas.getContext("2d", { willReadFrequently: true });
 const statusText = document.getElementById("status-text");
 const videoContainer = document.getElementById("video-container");
 const btnCamera = document.getElementById("btn-toggle-camera");
+const btnCapture = document.getElementById("btn-capture-now");
 const tbody = document.getElementById("table-body");
 
 const hasNativeDetector = ('BarcodeDetector' in window);
@@ -27,7 +26,7 @@ if (hasNativeDetector) {
     });
 }
 
-// صوت بيب قوي وفوري كأجهزة السوبرماركت
+// صوت بيب الكاشير الشهير
 function playBeepSound() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -36,13 +35,14 @@ function playBeepSound() {
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(1500, audioCtx.currentTime); 
-        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        oscillator.frequency.setValueAtTime(1400, audioCtx.currentTime); 
+        gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.06); // تقليص المدة لصوت بيب خاطف وسريع جداً
+        oscillator.stop(audioCtx.currentTime + 0.08); 
     } catch (e) { console.error(e); }
 }
 
+// نطق اسم الدواء تلقائياً باللغة العربية
 function speakMedicineName(text) {
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
@@ -52,99 +52,80 @@ function speakMedicineName(text) {
     }
 }
 
+// تشغيل وإيقاف الكاميرا الحية
 btnCamera.addEventListener("click", async () => {
     if (stream) { stopCamera(); } else { await startCamera(); }
 });
 
 async function startCamera() {
-    statusText.innerText = "جاري الاتصال بعدسة الكاميرا الفورية...";
+    statusText.innerText = "جاري فتح الكاميرا الحية...";
     try {
-        // إعدادات لقط فائقة الجودة لتمكين المحرك من المسح في أقل من ثانية
-        const constraints = {
-            video: {
-                facingMode: "environment",
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                frameRate: { ideal: 30 } // فحص 30 إطار بالثانية لسرعة خارقة
-            }
-        };
-
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
         video.srcObject = stream;
         video.setAttribute("playsinline", true);
         video.play();
         
         videoContainer.style.display = "block";
+        btnCapture.style.display = "block"; // إظهار زر اللقط
         btnCamera.innerText = "🛑 إيقاف الكاميرا";
         btnCamera.style.backgroundColor = "#d32f2f";
-        statusText.innerText = "🎯 ضع الـ QR أو الباركود داخل المستطيل الفسفوري وسيتم لقطه فوراً.";
-        
-        scanningActive = true;
-        requestAnimationFrame(tick);
+        statusText.innerText = "🎯 اضبط الكود داخل المستطيل واضغط على الزر الأحمر الكبير للَّقط فوراً.";
     } catch (err) {
-        statusText.innerText = "❌ فشل تشغيل الكاميرا الفورية، تفقد الصلاحيات.";
+        statusText.innerText = "❌ يرجى تفعيل إذن الكاميرا للمتصفح.";
     }
 }
 
 function stopCamera() {
-    scanningActive = false;
     if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
     video.srcObject = null;
     videoContainer.style.display = "none";
-    btnCamera.innerText = "📸 فتح الكاميرا التلقائية";
+    btnCapture.style.display = "none"; // إخفاء زر اللقط
+    btnCamera.innerText = "📸 فتح الكاميرا";
     btnCamera.style.backgroundColor = "#008080";
     statusText.innerText = "تم إيقاف الكاميرا.";
 }
 
-// دالة المعالجة الميكرو-ثانية (Microsecond Engine) لتخطي عتبة الثانية الواحدة
-async function tick() {
-    if (!scanningActive) return;
+// تفعيل حدث الضغط على زر اللقط الفوري الخاطف
+btnCapture.addEventListener("click", async () => {
+    if (!stream || video.readyState !== video.HAVE_ENOUGH_DATA) return;
 
-    if (video.readyState === video.HAVE_ENOUGH_DATA) {
-        canvas.height = video.videoHeight;
-        canvas.width = video.videoWidth;
-        
-        // رسم الفريم بسرعة فائقة جداً
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
-        let foundCode = "";
+    statusText.innerText = "⏳ جاري اللقط والتحليل الفوري...";
 
-        // المحرك الأساسي الفوري للهاتف (المعالج الداخلي بالـ Hardware)
-        if (hasNativeDetector && nativeDetector) {
-            try {
-                const barcodes = await nativeDetector.detect(canvas);
-                if (barcodes.length > 0) { foundCode = barcodes.rawValue; }
-            } catch (err) {}
-        }
-
-        // المحرك البرمجي الاحتياطي الخفيف جداً
-        if (!foundCode) {
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
-            if (code && code.data) { foundCode = code.data; }
-        }
-
-        // معالجة فودية فور لقط الكود
-        if (foundCode) { 
-            processAutomaticQR(foundCode); 
-        }
-    }
+    // رسم اللقطة الحالية فوراً على الكانفاس المخفي للمعالجة بسرعة البرق
+    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    if (scanningActive) { 
-        // استدعاء فوري مستمر وبدون أي تأخير برمي (Zero-delay loop)
-        setTimeout(() => { requestAnimationFrame(tick); }, 30); 
+    let foundCode = "";
+
+    // 1. المحاولة بالمعالج الداخلي السريع للموبايل
+    if (hasNativeDetector && nativeDetector) {
+        try {
+            const barcodes = await nativeDetector.detect(canvas);
+            if (barcodes.length > 0) { foundCode = barcodes.rawValue; }
+        } catch (err) {}
     }
-}
 
-function processAutomaticQR(qrContent) {
-    const now = Date.now();
-    // حماية تمنع التكرار المزعج لنفس العلبة في أول 3 ثواني
-    if (qrContent === lastCode && (now - lastTime < 3000)) return;
+    // 2. المحاولة بالمحرك البرمجي الاحتياطي
+    if (!foundCode) {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+        if (code && code.data) { foundCode = code.data; }
+    }
 
-    lastCode = qrContent;
-    lastTime = now;
+    // النتيجة
+    if (foundCode) {
+        processCapturedQR(foundCode);
+    } else {
+        statusText.innerText = "❌ فشل لقط الكود! تأكد أنه واضح داخل المستطيل الفسفوري وحاول مجدداً.";
+        if (navigator.vibrate) navigator.vibrate([50, 50]); // اهتزاز خفيف للخطأ
+    }
+});
 
-    playBeepSound(); // الصوت الفوري للكاشير
+function processCapturedQR(qrContent) {
+    playBeepSound(); // تشغيل الصوت فوراً
 
     let medName = "دواء جديد غير مسجل";
     let medPrice = "غير محدد";
@@ -161,6 +142,7 @@ function processAutomaticQR(qrContent) {
         medName = `كود: (${qrContent.substring(0, 15)})`;
     }
 
+    // نطق اسم الدواء تلقائياً
     speakMedicineName(`تم تسجيل ${medName}`);
 
     const timeStr = new Date().toLocaleTimeString('ar-EG');
@@ -172,6 +154,7 @@ function processAutomaticQR(qrContent) {
         "بيانات الكود الكاملة": qrContent
     });
 
+    // تنزيل فوري في الجدول
     const row = document.createElement("tr");
     row.innerHTML = `
         <td><b>${salesData.length}</b></td>
@@ -181,14 +164,15 @@ function processAutomaticQR(qrContent) {
     `;
     tbody.insertBefore(row, tbody.firstChild);
     
-    statusText.innerHTML = `✅ <b>تم المسح الفوري:</b> ${medName}`;
+    statusText.innerHTML = `✅ <b>تم الحفظ واللقط بنجاح:</b> ${medName}`;
 }
 
+// تصدير ملف الإكسيل
 document.getElementById('btn-download').addEventListener('click', () => {
     if (salesData.length === 0) { alert("لا توجد مبيعات مسجلة حتى الآن!"); return; }
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(salesData);
     ws['!dir'] = "rtl";
-    XLSX.utils.book_append_sheet(wb, ws, "المبيعات");
+    XLSX.utils.book_append_sheet(wb, ws, "المبيعات اليومية");
     XLSX.writeFile(wb, `مبيعات_الصيدلية_${new Date().toISOString().slice(0, 10)}.xlsx`);
 });
