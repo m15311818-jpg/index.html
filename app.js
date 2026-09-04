@@ -1,125 +1,120 @@
-// مصفوفة لتخزين المبيعات الممسوحة
 let salesData = [];
-let lastScannedCode = "";
-let lastScannedTime = 0;
-let html5QrCode; // كائن القارئ المطور
+let lastCode = "";
+let lastTime = 0;
+let stream = null;
 
-// انتظر تحميل الصفحة ثم قم بتهيئة القارئ
-document.addEventListener("DOMContentLoaded", () => {
-    // إنشاء كائن القارئ داخل الحاوية 'reader'
-    html5QrCode = new Html5QrCode("reader");
-    
-    // إضافة زر "تشغيل الكاميرا" ديناميكياً داخل قسم الكاميرا لضمان تفاعل المستخدم
-    const scannerSection = document.querySelector('.scanner-section');
-    const startButton = document.createElement('button');
-    startButton.id = "btn-start-camera";
-    startButton.innerText = "📸 اضغط هنا لتشغيل الكاميرا";
-    startButton.style.marginBottom = "15px";
-    startButton.style.backgroundColor = "#20b2aa";
-    
-    // إدخال الزر في أعلى قسم القارئ
-    scannerSection.insertBefore(startButton, document.getElementById('reader'));
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d", { willReadFrequently: true });
+const statusText = document.getElementById("status-text");
+const videoContainer = document.getElementById("video-container");
+const btnCamera = document.getElementById("btn-toggle-camera");
 
-    // عند الضغط على الزر، نطلب إذن الكاميرا ونشغلها فوراً
-    startButton.addEventListener('click', () => {
-        startPharmacyCamera(startButton);
-    });
+// تشغيل وإيقاف الكاميرا بضغطة واحدة وبشكل مباشر فوراً
+btnCamera.addEventListener("click", async () => {
+    if (stream) {
+        stopCamera();
+    } else {
+        await startCamera();
+    }
 });
 
-// دالة تشغيل الكاميرا الخلفية بشكل موثوق
-function startPharmacyCamera(buttonElement) {
-    const statusText = document.getElementById('scan-status');
-    statusText.innerText = "جاري الاتصال بالكاميرا الخلفية...";
-
-    // إعدادات لتجبر المتصفح على فتح الكاميرا الخلفية بدقة مناسبة للفحص
-    const config = {
-        fps: 15,
-        qrbox: { width: 250, height: 250 }
-    };
-
-    // طلب تشغيل الكاميرا الخلفية (environment)
-    html5QrCode.start(
-        { facingMode: "environment" }, 
-        config,
-        onScanSuccess
-    ).then(() => {
-        // إذا اشتغلت الكاميرا بنجاح، نقوم بإخفاء زر التشغيل
-        buttonElement.style.display = "none";
-        statusText.innerText = "✅ الكاميرا تعمل الآن بنجاح. وجهها نحو الـ QR.";
-        statusText.style.color = "#008080";
-    }).catch((err) => {
-        // في حال حدوث خطأ أو رفض الصلاحية
-        console.error("خطأ في تشغيل الكاميرا:", err);
-        statusText.innerText = "❌ فشل فتح الكاميرا. يرجى إعادة تحديث الصفحة والموافقة على إذن الكاميرا (Allow Camera).";
-        statusText.style.color = "red";
-        alert("تنبيه: المتصفح يحتاج إلى إذن الكاميرا لكي تتمكن من مسح الأدوية.");
-    });
+async function startCamera() {
+    statusText.innerText = "جاري فتح الكاميرا الخلفية...";
+    try {
+        // الاتصال المباشر بكاميرا الهاتف الخلفية الأساسية دون أي وسائط لإلغاء البطء
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+        video.srcObject = stream;
+        video.setAttribute("playsinline", true);
+        video.play();
+        
+        videoContainer.style.display = "block";
+        btnCamera.innerText = "🛑 إيقاف الكاميرا";
+        btnCamera.style.backgroundColor = "#d32f2f";
+        statusText.innerText = "✅ الكاميرا تعمل الآن، وجهها نحو علبة الدواء.";
+        
+        // بدء عملية الفحص الفوري لكل فريم
+        requestAnimationFrame(tick);
+    } catch (err) {
+        console.error(err);
+        statusText.innerText = "❌ تأكد من منح إذن الكاميرا للموقع في المتصفح.";
+        alert("يرجى تفعيل صلاحية الكاميرا في إعدادات متصفح الهاتف.");
+    }
 }
 
-// دالة تُنفذ فور قراءة الـ QR بنجاح
-function onScanSuccess(decodedText, decodedResult) {
-    const currentTime = Date.now();
-    
-    // حماية تمنع تكرار قراءة نفس العلبة في أقل من 3 ثواني
-    if (decodedText === lastScannedCode && (currentTime - lastScannedTime < 3000)) {
-        return; 
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
     }
+    video.srcObject = null;
+    videoContainer.style.display = "none";
+    btnCamera.innerText = "📸 تشغيل الكاميرا الخلفية";
+    btnCamera.style.backgroundColor = "#008080";
+    statusText.innerText = "تم إيقاف الكاميرا.";
+}
 
-    lastScannedCode = decodedText;
-    lastScannedTime = currentTime;
+// دالة الفحص اللحظي الفائقة السرعة
+function tick() {
+    if (video.readyState === video.HAVE_ENOUGH_DATA && stream) {
+        canvas.height = video.videoHeight;
+        canvas.width = video.videoWidth;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        // قراءة الـ QR الفورية من الصورة المعروضة
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: "dontInvert",
+        });
 
-    // الحصول على الوقت الحالي للصيدلية
-    const now = new Date();
-    const dateTimeStr = now.toLocaleDateString('ar-EG') + " " + now.toLocaleTimeString('ar-EG');
+        if (code && code.data) {
+            processQR(code.data);
+        }
+    }
+    if (stream) {
+        requestAnimationFrame(tick);
+    }
+}
 
-    // اهتزاز خفيف للهاتف عند نجاح المسح
-    if (navigator.vibrate) navigator.vibrate(100);
+function processQR(decodedText) {
+    const now = Date.now();
+    // منع التكرار الخطأ لمدة 3 ثوانٍ أثناء المسح
+    if (decodedText === lastCode && (now - lastTime < 3000)) return;
 
-    // إضافة البيانات للمصفوفة
+    lastCode = decodedText;
+    lastTime = now;
+
+    if (navigator.vibrate) navigator.vibrate(100); // اهتزاز للتنبيه
+
+    const timeStr = new Date().toLocaleTimeString('ar-EG');
+
+    // تسجيل البيانات
     salesData.push({
         "م": salesData.length + 1,
-        "تاريخ ووقت البيع": dateTimeStr,
-        "بيانات الدواء (QR Code)": decodedText
+        "الوقت": timeStr,
+        "بيانات الدواء": decodedText
     });
 
-    // تحديث الجدول والواجهة للموظف
-    updateSalesTable();
-}
-
-// دالة تحديث جدول المبيعات على الشاشة
-function updateSalesTable() {
-    const tbody = document.getElementById('sales-table-body');
-    const salesCountBadge = document.getElementById('sales-count');
+    // تحديث الجدول فوراً
+    const tbody = document.getElementById("table-body");
+    const row = document.createElement("tr");
+    row.innerHTML = `<td><b>${salesData.length}</b></td><td>${timeStr}</td><td style="color:#008080;">${decodedText}</td>`;
+    tbody.insertBefore(row, tbody.firstChild); // إضافة الأحدث في الأعلى
     
-    tbody.innerHTML = "";
-    salesCountBadge.innerText = `إجمالي المبيعات الحالية: ${salesData.length} علب`;
-
-    for (let i = salesData.length - 1; i >= 0; i--) {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><strong>${salesData[i]["م"]}</strong></td>
-            <td>${salesData[i]["تاريخ ووقت البيع"]}</td>
-            <td style="color: #008080; font-weight: 500;">${salesData[i]["بيانات الدواء (QR Code)"]}</td>
-        `;
-        tbody.appendChild(row);
-    }
+    statusText.innerText = `✅ تم تسجيل علبة جديدة بنجاح! إجمالي: ${salesData.length}`;
 }
 
-// دالة تحويل البيانات وتوليد ملف Excel وتحميله فوراً
+// تصدير ملف الاكسيل التلقائي
 document.getElementById('btn-download').addEventListener('click', () => {
     if (salesData.length === 0) {
-        alert("لا توجد مبيعات مسجلة حتى الآن لتصديرها لملف إكسيل!");
+        alert("لا توجد مبيعات مسجلة حتى الآن!");
         return;
     }
-
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(salesData);
-    ws['!dir'] = "rtl"; // جعل شيت الإكسيل يبدأ من اليمين لليسار للعربية
-
-    XLSX.utils.book_append_sheet(wb, ws, "المبيعات اليومية");
-
-    const today = new Date().toISOString().slice(0, 10);
-    const fileName = `مبيعات_الصيدلية_${today}.xlsx`;
-
-    XLSX.writeFile(wb, fileName);
+    ws['!dir'] = "rtl";
+    XLSX.utils.book_append_sheet(wb, ws, "المبيعات");
+    XLSX.writeFile(wb, `مبيعات_${new Date().toISOString().slice(0, 10)}.xlsx`);
 });
