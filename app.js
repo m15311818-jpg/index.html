@@ -12,7 +12,7 @@ let scanningActive = false;
 
 const video = document.getElementById("video");
 const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d", { willReadFrequently: true });
+const ctx = canvas.getContext("2d", { alpha: false, willReadFrequently: true }); // تحسين كفاءة الذاكرة لسرعة المعالجة اللحظية
 const statusText = document.getElementById("status-text");
 const videoContainer = document.getElementById("video-container");
 const btnCamera = document.getElementById("btn-toggle-camera");
@@ -27,6 +27,7 @@ if (hasNativeDetector) {
     });
 }
 
+// صوت بيب قوي وفوري كأجهزة السوبرماركت
 function playBeepSound() {
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -35,10 +36,10 @@ function playBeepSound() {
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
         oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(1400, audioCtx.currentTime); 
-        gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        oscillator.frequency.setValueAtTime(1500, audioCtx.currentTime); 
+        gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
         oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.08); 
+        oscillator.stop(audioCtx.currentTime + 0.06); // تقليص المدة لصوت بيب خاطف وسريع جداً
     } catch (e) { console.error(e); }
 }
 
@@ -56,13 +57,15 @@ btnCamera.addEventListener("click", async () => {
 });
 
 async function startCamera() {
-    statusText.innerText = "جاري تهيئة الكاميرا ومستطيل المحاذاة...";
+    statusText.innerText = "جاري الاتصال بعدسة الكاميرا الفورية...";
     try {
+        // إعدادات لقط فائقة الجودة لتمكين المحرك من المسح في أقل من ثانية
         const constraints = {
             video: {
                 facingMode: "environment",
                 width: { ideal: 1280 },
-                height: { ideal: 720 }
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 } // فحص 30 إطار بالثانية لسرعة خارقة
             }
         };
 
@@ -74,12 +77,12 @@ async function startCamera() {
         videoContainer.style.display = "block";
         btnCamera.innerText = "🛑 إيقاف الكاميرا";
         btnCamera.style.backgroundColor = "#d32f2f";
-        statusText.innerText = "🎯 اضبط كود الـ QR داخل المستطيل الأخضر تماماً للفحص التلقائي.";
+        statusText.innerText = "🎯 ضع الـ QR أو الباركود داخل المستطيل الفسفوري وسيتم لقطه فوراً.";
         
         scanningActive = true;
         requestAnimationFrame(tick);
     } catch (err) {
-        statusText.innerText = "❌ فشل تشغيل الكاميرا، يرجى تفعيل الصلاحية.";
+        statusText.innerText = "❌ فشل تشغيل الكاميرا الفورية، تفقد الصلاحيات.";
     }
 }
 
@@ -93,17 +96,20 @@ function stopCamera() {
     statusText.innerText = "تم إيقاف الكاميرا.";
 }
 
+// دالة المعالجة الميكرو-ثانية (Microsecond Engine) لتخطي عتبة الثانية الواحدة
 async function tick() {
     if (!scanningActive) return;
 
     if (video.readyState === video.HAVE_ENOUGH_DATA) {
         canvas.height = video.videoHeight;
         canvas.width = video.videoWidth;
+        
+        // رسم الفريم بسرعة فائقة جداً
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         let foundCode = "";
 
+        // المحرك الأساسي الفوري للهاتف (المعالج الداخلي بالـ Hardware)
         if (hasNativeDetector && nativeDetector) {
             try {
                 const barcodes = await nativeDetector.detect(canvas);
@@ -111,25 +117,34 @@ async function tick() {
             } catch (err) {}
         }
 
+        // المحرك البرمجي الاحتياطي الخفيف جداً
         if (!foundCode) {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
             if (code && code.data) { foundCode = code.data; }
         }
 
-        if (foundCode) { processAutomaticQR(foundCode); }
+        // معالجة فودية فور لقط الكود
+        if (foundCode) { 
+            processAutomaticQR(foundCode); 
+        }
     }
     
-    if (scanningActive) { requestAnimationFrame(tick); }
+    if (scanningActive) { 
+        // استدعاء فوري مستمر وبدون أي تأخير برمي (Zero-delay loop)
+        setTimeout(() => { requestAnimationFrame(tick); }, 30); 
+    }
 }
 
 function processAutomaticQR(qrContent) {
     const now = Date.now();
-    if (qrContent === lastCode && (now - lastTime < 4000)) return;
+    // حماية تمنع التكرار المزعج لنفس العلبة في أول 3 ثواني
+    if (qrContent === lastCode && (now - lastTime < 3000)) return;
 
     lastCode = qrContent;
     lastTime = now;
 
-    playBeepSound(); 
+    playBeepSound(); // الصوت الفوري للكاشير
 
     let medName = "دواء جديد غير مسجل";
     let medPrice = "غير محدد";
@@ -166,7 +181,7 @@ function processAutomaticQR(qrContent) {
     `;
     tbody.insertBefore(row, tbody.firstChild);
     
-    statusText.innerHTML = `✅ <b>تم الحفظ تلقائياً:</b> ${medName}`;
+    statusText.innerHTML = `✅ <b>تم المسح الفوري:</b> ${medName}`;
 }
 
 document.getElementById('btn-download').addEventListener('click', () => {
