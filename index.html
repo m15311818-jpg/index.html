@@ -3,72 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منظومة الصيدلية - قراءة اسم الدواء الذكية</title>
-    <!-- مكتبة الذكاء الاصطناعي لقراءة النصوص من الصور OCR -->
-    <script src="https://jsdelivr.net"></script>
-    <!-- مكتبة الاكسيل -->
-    <script src="https://jsdelivr.net"></script>
+    <title>منظومة الصيدلية المصورة</title>
+    <!-- مكتبة ExcelJS المتقدمة لدعم إدراج الصور داخل ملف الاكسيل -->
+    <script src="https://cloudflare.com"></script>
+    <script src="https://cloudflare.com"></script>
     <style>
-        :root { --primary: #008080; --secondary: #20b2aa; --bg: #f4f7f6; }
+        :root { --primary: #008080; --bg: #f4f7f6; }
         body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 15px; text-align: center; direction: rtl; }
         .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { color: var(--primary); font-size: 1.4rem; margin-bottom: 15px; }
         
-        /* قسم الكاميرا والمدخلات */
         .input-group { margin: 15px 0; text-align: right; }
         label { font-weight: bold; display: block; margin-bottom: 5px; color: #333; }
-        input[type="text"], input[type="number"] { width: 100%; padding: 10px; box-sizing: border-box; border: 2px solid #ddd; border-radius: 6px; font-size: 1rem; text-align: right; }
+        input[type="number"] { width: 100%; padding: 12px; box-sizing: border-box; border: 2px solid #ddd; border-radius: 6px; font-size: 1.1rem; text-align: right; }
         input:focus { border-color: var(--primary); outline: none; }
 
-        /* زر الكاميرا الأصلي الذكي للتصوير */
         .camera-btn-wrapper { position: relative; display: block; margin: 15px 0; }
-        .camera-btn { background: #333; color: white; border: none; padding: 12px; width: 100%; font-size: 1.1rem; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .camera-btn { background: #333; color: white; border: none; padding: 14px; width: 100%; font-size: 1.1rem; font-weight: bold; border-radius: 6px; cursor: pointer; }
         .camera-btn-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
-        button { background: var(--primary); color: white; border: none; padding: 12px 20px; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; margin: 5px; }
+        #preview-img { width: 100%; max-height: 200px; object-fit: contain; display: none; margin: 10px 0; border: 2px dashed var(--primary); border-radius: 6px; }
+
+        button { color: white; border: none; padding: 12px 20px; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; margin: 5px; }
         .btn-add { background-color: var(--primary); width: 100%; margin: 10px 0; padding: 14px; font-size: 1.1rem; }
-        .btn-excel { background-color: #1f7246; }
+        .btn-excel { background-color: #1f7246; width: 100%; padding: 14px; font-size: 1.1rem; margin: 10px 0; }
         
-        .status { font-weight: bold; margin: 12px 0; color: #008080; font-size: 0.95rem; min-height: 24px; }
+        .status { font-weight: bold; margin: 12px 0; color: #008080; font-size: 0.95rem; }
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border-bottom: 1px solid #ddd; font-size: 0.9rem; }
+        th, td { padding: 10px; border-bottom: 1px solid #ddd; font-size: 0.9rem; text-align: center; }
         th { background: var(--primary); color: white; }
+        .td-preview { max-width: 60px; max-height: 60px; object-fit: contain; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>📸 كاشير الصيدلية الذكي بتصوير العلبة</h1>
+    <h1>📸 كاشير الصيدلية المصور (تأكيد بالصورة)</h1>
     
-    <!-- زر فتح كاميرا الموبايل الأصلية لتصوير العلبة مباشرة -->
-    <div class="camera-btn-wrapper">
-        <button class="camera-btn">📸 صور اسم الدواء من العلبة</button>
-        <input type="file" accept="image/*" capture="environment" id="medicine-camera">
-    </div>
-
-    <div class="status" id="status-text">اضغط على زر الكاميرا لتصوير علبة الدواء وسنقوم بقراءة اسمها فوراً</div>
-
-    <!-- خانات مراجعة وتعديل البيانات يدوياً قبل الحفظ -->
-    <div class="input-group">
-        <label>اسم الدواء (المكتشف أو اكتبه):</label>
-        <input type="text" id="med-name-input" placeholder="سيظهر الاسم هنا تلقائياً بعد التصوير">
-    </div>
-
     <div class="input-group">
         <label>سعر الدواء (اكتب السعر الحالي):</label>
         <input type="number" id="med-price-input" placeholder="0.00">
     </div>
 
+    <!-- زر الكاميرا -->
+    <div class="camera-btn-wrapper">
+        <button class="camera-btn">📸 التقط صورة علبة الدواء</button>
+        <input type="file" accept="image/*" capture="environment" id="medicine-camera">
+    </div>
+
+    <img id="preview-img" alt="معاينة الصورة">
+    <div class="status" id="status-text">اكتب السعر ثم التقط صورة العلبة لحفظها فوراً</div>
+
     <button id="btn-add-record" class="btn-add">➕ حفظ الدواء الحالي في الجدول</button>
-    <button id="btn-download" class="btn-excel">📥 تحميل ملف Excel المبيعات</button>
+    <button id="btn-download" class="btn-excel">📥 تحميل ملف Excel المبيعات مع الصور</button>
 
     <table>
         <thead>
             <tr>
                 <th>#</th>
                 <th>الوقت</th>
-                <th>اسم الدواء</th>
                 <th>السعر</th>
+                <th>الصورة</th>
             </tr>
         </thead>
         <tbody id="table-body"></tbody>
