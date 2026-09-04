@@ -2,34 +2,65 @@
 let salesData = [];
 let lastScannedCode = "";
 let lastScannedTime = 0;
+let html5QrCode; // كائن القارئ المطور
 
-// بدء تشغيل قارئ الـ QR المطور
-function docReady(fn) {
-    if (document.readyState === "complete" || document.readyState === "interactive") {
-        setTimeout(fn, 1);
-    } else {
-        document.addEventListener("DOMContentLoaded", fn);
-    }
-}
+// انتظر تحميل الصفحة ثم قم بتهيئة القارئ
+document.addEventListener("DOMContentLoaded", () => {
+    // إنشاء كائن القارئ داخل الحاوية 'reader'
+    html5QrCode = new Html5QrCode("reader");
+    
+    // إضافة زر "تشغيل الكاميرا" ديناميكياً داخل قسم الكاميرا لضمان تفاعل المستخدم
+    const scannerSection = document.querySelector('.scanner-section');
+    const startButton = document.createElement('button');
+    startButton.id = "btn-start-camera";
+    startButton.innerText = "📸 اضغط هنا لتشغيل الكاميرا";
+    startButton.style.marginBottom = "15px";
+    startButton.style.backgroundColor = "#20b2aa";
+    
+    // إدخال الزر في أعلى قسم القارئ
+    scannerSection.insertBefore(startButton, document.getElementById('reader'));
 
-docReady(function () {
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-        "reader", 
-        { 
-            fps: 15, 
-            qrbox: { width: 250, height: 250 },
-            rememberLastUsedCamera: true,
-            supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA]
-        }
-    );
-    html5QrcodeScanner.render(onScanSuccess);
+    // عند الضغط على الزر، نطلب إذن الكاميرا ونشغلها فوراً
+    startButton.addEventListener('click', () => {
+        startPharmacyCamera(startButton);
+    });
 });
+
+// دالة تشغيل الكاميرا الخلفية بشكل موثوق
+function startPharmacyCamera(buttonElement) {
+    const statusText = document.getElementById('scan-status');
+    statusText.innerText = "جاري الاتصال بالكاميرا الخلفية...";
+
+    // إعدادات لتجبر المتصفح على فتح الكاميرا الخلفية بدقة مناسبة للفحص
+    const config = {
+        fps: 15,
+        qrbox: { width: 250, height: 250 }
+    };
+
+    // طلب تشغيل الكاميرا الخلفية (environment)
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        config,
+        onScanSuccess
+    ).then(() => {
+        // إذا اشتغلت الكاميرا بنجاح، نقوم بإخفاء زر التشغيل
+        buttonElement.style.display = "none";
+        statusText.innerText = "✅ الكاميرا تعمل الآن بنجاح. وجهها نحو الـ QR.";
+        statusText.style.color = "#008080";
+    }).catch((err) => {
+        // في حال حدوث خطأ أو رفض الصلاحية
+        console.error("خطأ في تشغيل الكاميرا:", err);
+        statusText.innerText = "❌ فشل فتح الكاميرا. يرجى إعادة تحديث الصفحة والموافقة على إذن الكاميرا (Allow Camera).";
+        statusText.style.color = "red";
+        alert("تنبيه: المتصفح يحتاج إلى إذن الكاميرا لكي تتمكن من مسح الأدوية.");
+    });
+}
 
 // دالة تُنفذ فور قراءة الـ QR بنجاح
 function onScanSuccess(decodedText, decodedResult) {
     const currentTime = Date.now();
     
-    // حماية تمنع تكرار قراءة نفس العلبة في أقل من 3 ثواني (بسبب اهتزاز اليد)
+    // حماية تمنع تكرار قراءة نفس العلبة في أقل من 3 ثواني
     if (decodedText === lastScannedCode && (currentTime - lastScannedTime < 3000)) {
         return; 
     }
@@ -41,7 +72,7 @@ function onScanSuccess(decodedText, decodedResult) {
     const now = new Date();
     const dateTimeStr = now.toLocaleDateString('ar-EG') + " " + now.toLocaleTimeString('ar-EG');
 
-    // تشغيل صوت "بيب" خفيف لتنبيه الصيدلي بنجاح المسح (اختياري عبر اهتزاز أو صوت)
+    // اهتزاز خفيف للهاتف عند نجاح المسح
     if (navigator.vibrate) navigator.vibrate(100);
 
     // إضافة البيانات للمصفوفة
@@ -63,7 +94,6 @@ function updateSalesTable() {
     tbody.innerHTML = "";
     salesCountBadge.innerText = `إجمالي المبيعات الحالية: ${salesData.length} علب`;
 
-    // عرض المبيعات بحيث يظهر أحدث دواء تم مسحه في الأعلى لسهولة المراجعة
     for (let i = salesData.length - 1; i >= 0; i--) {
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -82,22 +112,14 @@ document.getElementById('btn-download').addEventListener('click', () => {
         return;
     }
 
-    // 1. إنشاء كتاب عمل جديد (Workbook)
     const wb = XLSX.utils.book_new();
-    
-    // 2. تحويل مصفوفة المبيعات إلى شيت إكسيل (Worksheet)
     const ws = XLSX.utils.json_to_sheet(salesData);
+    ws['!dir'] = "rtl"; // جعل شيت الإكسيل يبدأ من اليمين لليسار للعربية
 
-    // ضبط اتجاه الشيت ليكون من اليمين لليسار ليناسب اللغة العربية في الاكسيل
-    ws['!dir'] = "rtl";
-
-    // 3. دمج الشيت داخل ملف الإكسيل باسم "مبيعات الصيدلية"
     XLSX.utils.book_append_sheet(wb, ws, "المبيعات اليومية");
 
-    // توليد اسم ملف يحتوي على تاريخ اليوم لحسن التنظيم
     const today = new Date().toISOString().slice(0, 10);
     const fileName = `مبيعات_الصيدلية_${today}.xlsx`;
 
-    // 4. تحميل الملف فوراً على جهاز الموظف
     XLSX.writeFile(wb, fileName);
 });
