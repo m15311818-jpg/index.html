@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منظومة الصيدلية الصوتية الذكية</title>
-    <!-- مكتبة القراءة الفورية -->
+    <title>منظومة الصيدلية الصوتية السريعة</title>
+    <!-- مكتبة القراءة الفورية الفائقة السرعة -->
     <script src="https://jsdelivr.net"></script>
     <!-- مكتبة الاكسيل -->
     <script src="https://jsdelivr.net"></script>
@@ -14,35 +14,35 @@
         .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
         h1 { color: var(--primary); font-size: 1.4rem; margin-bottom: 15px; }
         
-        /* حاوية الكاميرا */
+        /* حاوية الكاميرا الهيدروليكية الفورية */
         #video-container { width: 100%; max-width: 350px; margin: 15px auto; position: relative; border-radius: 10px; overflow: hidden; background: #000; display: none; border: 3px solid var(--primary); }
         video { width: 100%; height: auto; display: block; }
         canvas { display: none; }
 
-        /* ✨ تصميم مستطيل التركيز الذكي فوق الكاميرا ✨ */
+        /* مستطيل التركيز العرضي الخاص بالأدوية */
         .scanner-laser-box {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 220px;
-            height: 220px;
+            width: 280px;  
+            height: 140px; 
             border: 3px solid #00ffcc;
-            box-shadow: 0 0 0 400px rgba(0, 0, 0, 0.5); /* تعتيم المنطقة الخارجية المتبقية لتركيز العين */
+            box-shadow: 0 0 0 400px rgba(0, 0, 0, 0.5); 
             border-radius: 8px;
-            pointer-events: none; /* لمنع حجب اللمس والتحكم */
+            pointer-events: none; 
         }
-        /* خط الليزر المتحرك للزينة والمحاكاة الاحترافية */
+        /* خط الليزر المسرع رادارياً */
         .scanner-laser-box::after {
             content: '';
             position: absolute;
             width: 100%;
-            height: 2px;
+            height: 3px;
             background-color: #ff0055;
             top: 0;
             left: 0;
-            animation: radar-laser 2s linear infinite;
-            box-shadow: 0 0 8px #ff0055;
+            animation: radar-laser 1.2s linear infinite; /* تسريع حركة الليزر التوجيهي */
+            box-shadow: 0 0 10px #ff0055;
         }
         @keyframes radar-laser {
             0% { top: 0%; }
@@ -62,18 +62,16 @@
 <body>
 
 <div class="container">
-    <h1>🏥 منظومة الكاشير الصوتي للصيدلية</h1>
+    <h1>🏥 منظومة الكاشير الصوتي للصيدلية (فائق السرعة)</h1>
     
     <button id="btn-toggle-camera">📸 فتح الكاميرا التلقائية</button>
     <button id="btn-download" class="btn-excel">📥 تحميل ملف Excel</button>
     
-    <div class="status" id="status-text">اضغط على زر فتح الكاميرا لبدء الفحص المستمر</div>
+    <div class="status" id="status-text">اضغط على زر فتح الكاميرا للبدء بالفحص اللحظي المطور</div>
 
-    <!-- حاوية البث المباشر المضاف إليها المربع الذكي -->
     <div id="video-container">
         <video id="video" playsinline></video>
         <canvas id="canvas"></canvas>
-        <!-- هذا هو المستطيل الذي سيظهر لتحديد الـ QR داخله -->
         <div class="scanner-laser-box"></div>
     </div>
 
