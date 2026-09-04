@@ -3,51 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منظومة الصيدلية - مسح QR سريع</title>
-    <!-- استخدام مكتبة jsQR الخفيفة جداً والسريعة في التحميل -->
-    <script src="https://jsdelivr.net"></script>
-    <!-- مكتبة الاكسيل الخفيفة -->
+    <title>منظومة الصيدلية الفورية</title>
+    <!-- تم إزالة مكتبات القراءة الخارجية لضمان التحميل اللحظي للموقع -->
     <script src="https://jsdelivr.net"></script>
     <style>
         :root { --primary: #008080; --bg: #f4f7f6; }
         body { font-family: sans-serif; background-color: var(--bg); margin: 0; padding: 15px; text-align: center; direction: rtl; }
-        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h1 { color: var(--primary); font-size: 1.5rem; margin-bottom: 20px; }
-        #video-container { width: 100%; max-width: 400px; margin: 0 auto; position: relative; border-radius: 8px; overflow: hidden; background: #000; display: none; }
-        video { width: 100%; height: auto; display: block; }
-        canvas { display: none; }
-        button { background: var(--primary); color: white; border: none; padding: 12px 20px; font-size: 1rem; font-weight: bold; border-radius: 6px; cursor: pointer; margin: 10px 5px; }
-        .btn-excel { background-color: #1f7246; }
-        .status { font-weight: bold; margin: 15px 0; color: #555; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border-bottom: 1px solid #ddd; font-size: 0.9rem; }
+        .container { max-width: 500px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { color: var(--primary); font-size: 1.4rem; margin-bottom: 20px; }
+        
+        /* تصميم زر الكاميرا الأصلي الذكي */
+        .scan-btn-wrapper { position: relative; display: inline-block; margin: 10px; }
+        .scan-btn { background: var(--primary); color: white; border: none; padding: 15px 30px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; display: inline-block; }
+        .scan-btn-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        
+        .btn-excel { background-color: #1f7246; color: white; border: none; padding: 15px 30px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; margin: 10px; }
+        .status { font-weight: bold; margin: 15px 0; color: #333; font-size: 1rem; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #ddd; font-size: 0.95rem; }
         th { background: var(--primary); color: white; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>🏥 مسح المبيعات السريع بالـ QR</h1>
+    <h1>🏥 المسح الفوري لمبيعات الصيدلية</h1>
     
-    <!-- أزرار التحكم الأساسية تظهر فوراً دون انتظار -->
-    <button id="btn-toggle-camera">📸 تشغيل الكاميرا الخلفية</button>
+    <!-- زر ذكي يفتح كاميرا الهاتف الأصلية السريعة والذكية فوراً -->
+    <div class="scan-btn-wrapper">
+        <button class="scan-btn">📸 صور الـ QR على العلبة</button>
+        <input type="file" accept="image/*" capture="environment" id="qr-camera-input">
+    </div>
+    
     <button id="btn-download" class="btn-excel">📥 تحميل ملف Excel</button>
     
-    <div class="status" id="status-text">اضغط على زر تشغيل الكاميرا للبدء</div>
+    <div class="status" id="status-text">اضغط على زر الكاميرا لتصوير علبة الدواء وسيتم حفظها فوراً</div>
 
-    <!-- حاوية الكاميرا الهجينة السريعة -->
-    <div id="video-container">
-        <video id="video" playsinline></video>
-        <canvas id="canvas"></canvas>
-    </div>
-
-    <!-- جدول المبيعات -->
     <table>
         <thead>
             <tr>
                 <th>#</th>
                 <th>الوقت</th>
-                <th>بيانات الـ QR</th>
+                <th>بيانات الـ QR المسجلة</th>
             </tr>
         </thead>
         <tbody id="table-body"></tbody>
